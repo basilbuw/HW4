@@ -162,7 +162,20 @@ if __name__ == '__main__' :
     # DEVICE = torch.device("cpu")
     DEVICE = torch.device("mps")
     print(DEVICE)
-    random_search(num_epochs=2)
+    random_search(
+        lr_values=[5e-3, 1e-3, 5e-4, 1e-4],
+        batch_size_values=[16, 32, 64],
+        M_values=[100, 200, 400, 800],
+        k_values=[2, 3, 4, 5, 6, 7],
+        N_values=[2, 3, 4, 5, 6, 8, 10, 12, 14],
+        num_epochs=20
+    )
 
+# lr_values = [1e-2, 5e-3, 1e-3, 1e-4],
+# batch_size_values = [16, 32, 64],
+# M_values = [100, 200, 400, 800],
+# k_values = [2, 3, 4, 5, 6, 7],
+# N_values = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+# num_epochs = 35
 
 
