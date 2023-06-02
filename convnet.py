@@ -6,14 +6,15 @@ from torch.optim import SGD
 import torchvision
 from torch.utils.data import DataLoader, TensorDataset, random_split
 import matplotlib.pyplot as plt
-# from tqdm.notebook import tqdm
 import os
 import pickle
 import json
 from collections import defaultdict
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 import torch.optim as optim
 from math import floor
+
+torch.manual_seed(0)
 
 def load_data(batch_size):
     train_dataset = torchvision.datasets.CIFAR10("./data", train=True, download=True, transform=torchvision.transforms.ToTensor())
@@ -27,20 +28,6 @@ def load_data(batch_size):
 
     return train_loader, val_loader, test_loader
 
-class FullyConnectedNet(nn.Module):
-    def __init__(self, M):
-        # here M is the number of hidden layer neurons in the fully connected network
-        super(FullyConnectedNet, self).__init__()
-        self.model = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(32 * 32 * 3, M, bias=True),
-            nn.ReLU(),
-            nn.Linear(M, 10, bias=True)
-        )
-
-    def forward(self, x):
-        return self.model(x)
-
 
 class ConvNet(nn.Module):
     def __init__(self, M=100, k=5, N=14):
@@ -50,7 +37,6 @@ class ConvNet(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(N),
             nn.Flatten(),
-            nn.Dropout(0.05),
             nn.Linear(M * floor((32 - k + 1) // N) ** 2, 10)
         )
 
@@ -97,7 +83,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, num_epochs):
         train_acc_list.append(train_acc)
         val_acc_list.append(val_acc)
     print('Finished Training')
-    return train_acc_list, val_acc_list
+    return train_acc_list, val_acc_list, model
 
 def random_search(
 
@@ -133,14 +119,16 @@ def random_search(
                             model = ConvNet(M=M, k=k, N=N)
                             optimizer = optim.Adam(model.parameters(), lr=lr)
                             criterion = nn.CrossEntropyLoss()
-                            train_acc, val_acc = train(model, train_loader, val_loader, criterion, optimizer, num_epochs)
+                            train_acc, val_acc, model = train(model, train_loader, val_loader, criterion, optimizer, num_epochs)
 
                             #### save current results ###
                             results[hyperparameters] = {}
                             results[hyperparameters]['training_accuracy'] = train_acc
                             results[hyperparameters]['validation_accuracy'] = val_acc
                             results[hyperparameters]['max_validation_accuracy'] = max(val_acc)
+                            results[hyperparameters]['final_test_accuracy'] = compute_accuracy(model, test_loader)
                             with open('results.json', 'w') as f:
+                                print("saved results")
                                 json.dump(results, f)
 
     # After all models have been trained, find the model with the highest validation accuracy
@@ -149,32 +137,14 @@ def random_search(
     return results
 
 
-def simple_model():
-    train_loader, val_loader, test_loader = load_data(batch_size=128)
-    #fcmodel = FullyConnectedNet(1000)
-    convnet = ConvNet(M=400, k=5, N=14)
-    optimizer = optim.Adam(convnet.parameters(), lr=1e-2)
-    criterion = nn.CrossEntropyLoss()
-    train(convnet, train_loader, val_loader, criterion, optimizer, num_epochs=20)
 
-
-if __name__ == '__main__' :
-    DEVICE = torch.device("mps")
-    print(DEVICE)
-    random_search(
-        lr_values=[1.5e-3],
-        batch_size_values=[16],
-        M_values=[100],
-        k_values=[3],
-        N_values=[6],
-        num_epochs=5
-    )
-
-# lr_values = [1e-2, 5e-3, 1e-3, 1e-4],
-# batch_size_values = [16, 32, 64],
-# M_values = [100, 200, 400, 800],
-# k_values = [2, 3, 4, 5, 6, 7],
-# N_values = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-# num_epochs = 35
-
-
+DEVICE = torch.device("cuda")
+print(DEVICE)
+random_search(
+    lr_values=[1.5e-3],
+    batch_size_values=[16],
+    M_values=[100, 200],
+    k_values=[2, 3],
+    N_values=[6],
+    num_epochs=10
+)
