@@ -50,6 +50,7 @@ class ConvNet(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(N),
             nn.Flatten(),
+            nn.Dropout(0.05),
             nn.Linear(M * floor((32 - k + 1) // N) ** 2, 10)
         )
 
@@ -158,17 +159,15 @@ def simple_model():
 
 
 if __name__ == '__main__' :
-
-    # DEVICE = torch.device("cpu")
     DEVICE = torch.device("mps")
     print(DEVICE)
     random_search(
-        lr_values=[5e-3, 1e-3, 5e-4, 1e-4],
-        batch_size_values=[16, 32, 64],
-        M_values=[100, 200, 400, 800],
-        k_values=[2, 3, 4, 5, 6, 7],
-        N_values=[2, 3, 4, 5, 6, 8, 10, 12, 14],
-        num_epochs=20
+        lr_values=[1.5e-3],
+        batch_size_values=[16],
+        M_values=[100],
+        k_values=[3],
+        N_values=[6],
+        num_epochs=5
     )
 
 # lr_values = [1e-2, 5e-3, 1e-3, 1e-4],
